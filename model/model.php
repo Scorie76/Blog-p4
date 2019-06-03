@@ -1,9 +1,15 @@
 <?php
 
-function getPosts()
+require_once("model/modelManager.php");
+
+class FrontManager extends modelManager
 {
 
-$db = dbConnect();
+
+public function getPosts()
+{
+
+$db = $this->dbConnect();
 $req = $db->query( 'SELECT  *   FROM posts');
 
 return $req;
@@ -15,10 +21,10 @@ return $req;
 
 
 
-function getPost($postId)
+public function getPost($postId)
 {
 
-$db = dbConnect();
+$db = $this->dbConnect();
 $req = $db->prepare('SELECT id, Title, Content, date_publi FROM posts WHERE id = ?');
 $req->execute(array($postId));
 $post = $req->fetch();
@@ -28,15 +34,13 @@ return $post;
 
 }
 
-?>
 
-<?php
 
-function getComments($postId)
+public function getComments($postId)
 {
 
 
-$db = dbConnect();
+$db = $this->dbConnect();
 $comments = $db->prepare('SELECT id, id_billet, author, comment, date_comment FROM comments WHERE id_billet = ? ORDER BY date_comment');
 $comments->execute(array($postId));
 return $comments;
@@ -44,43 +48,45 @@ return $comments;
 
 }
 
-function postComment($postId, $author, $comment)
+
+
+public function postComment($postId, $author, $comment)
 {
-    $db = dbConnect();
-    $comments = $db->prepare('INSERT INTO comments (id_billet, author, comment, date_comment) VALUES(?, ?, ?, NOW())');
+    $db = $this->dbConnect();
+    $comments = $db->prepare('INSERT INTO comments_buffer (id_billet, author, comment, date_comment, signalement) VALUES(?, ?, ?, NOW(),0)');
     $affectedLines = $comments->execute(array($postId, $author, $comment));
 
     return $affectedLines;
 }
 
 
-// Nouvelle fonction qui nous permet d'éviter de répéter du code
-function dbConnect()
-{
-	    try
-	{$db = new PDO('mysql:host=localhost;dbname=blog;charset=utf8', 'root', '');
-	   
-	    return $db;
 
-	}
-	catch(Exception $e)
-	{
-	    die('Erreur : '.$e->getMessage());
-	}
+ public function envoiMailing ($nom, $prenom,$textarea, $adresseMail)
+{
+    $to  = 'guillaume.morillon@gmx.fr';
+    $nom = $nom;
+    $prenom = $prenom;
+    $message = $textarea;
+     
+
+     mail($to, $nom, $prenom, $message);
+     Echo 'mail a été envoyé';
+    
 }
 
-function loginAdmin()
+
+public function loginAdmin($login, $pass)
 {
-	$db = dbConnect();
+	$db = $this->dbConnect();
 	//  Récupération de l'utilisateur et de son pass hashé
-$req = $bdd->prepare('SELECT id, pass, prename, name  FROM admin WHERE login = :login');
+$req = $db->prepare('SELECT id, pass, prename, name  FROM admin WHERE login = :login');
 $req->execute(array(
-    'login' => $_POST['login']));
+    'login' => $login));
 $resultat = $req->fetch();
 
 
 // Comparaison du pass envoyé via le formulaire avec la base
-$isPasswordCorrect = password_verify($_POST['pass'], $resultat['pass']);
+$isPasswordCorrect = password_verify($pass, $resultat['pass']);
 
 if (!$resultat)
 {
@@ -95,7 +101,7 @@ else
         $_SESSION['login'] = $_POST['login'];
         $_SESSION['nom'] = $resultat['name'];
         $_SESSION['prenom'] = $resultat['prename'];
-        
+        header('Location: view/indexFrontEnd.php');
         exit();
     }
     else {
@@ -107,6 +113,6 @@ else
 }
 
 
-
+}
 
 ?>
